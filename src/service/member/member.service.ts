@@ -1,0 +1,74 @@
+import { Injectable } from '@nestjs/common';
+import { MemberRepository } from 'src/repository/member/member.repository';
+import { AuthService } from '../auth/auth.service';
+import { MemberRegisterDTO, MemberResponseDTO, MemberUpdateDTO } from 'src/domain/member/dto/member.dto';
+import MemberException from 'src/exception/exception.member';
+import { AuthProvider } from '@prisma/client';
+import { MemberResponse } from 'src/domain/member/dto/member.response';
+
+// 1. 예외 처리(Custom Exception)
+// 2. 트랜잭션 처리(Transcation Handler)
+// 3. 반환값 처리(일관된 응답 -> APIResponseDTO)
+@Injectable()
+export class MemberService {
+  constructor(
+    private readonly memberRepository: MemberRepository,
+    private readonly authService: AuthService,
+  ) {}
+
+  // 회원 가입 서비스
+  // 3) 예외 처리
+  // 4) 리턴 처리
+  async join(member: MemberRegisterDTO): Promise<void> {
+    // 1) 회원가입 유무 확인
+    const foundMember = await this.memberRepository.findMemberByMemberEmail(
+      member.memberEmail,
+    );
+    if (foundMember) {
+      //예외 처리
+      throw new MemberException('이미 존재하는 회원입니다.');
+    }
+    // 2) 비밀번호 암호화(bycrypt)
+    let hashedPassword = member.memberPassword;
+
+    // 로컬일때만 암호화
+    if (member.memberProvider === AuthProvider.LOCAL && member.memberPassword) {
+      hashedPassword = await this.authService.hashPassword(
+        member.memberPassword,
+      );
+    }
+
+    await this.memberRepository.save({
+      ...member,
+      memberPassword: hashedPassword,
+    });
+  }
+
+  // 회원 전체 목록 조회
+  async getMembers(): Promise<MemberResponse[]> {
+    const members = await this.memberRepository.findMemberAll();
+    // 민감한 정보 제거
+    const response: MemberResponse[] = members.map((member) => ({
+      ...member,
+      socials: member.socials.map(({ memberPassword, ...rest }) => rest),
+    }));
+
+    return response;
+  }
+
+  // 회원 정보 수정
+  async modify(id: number, member: MemberUpdateDTO) {
+    const foundMember = await this.memberRepository.findMemberById(id);
+    if (!foundMember) {
+      console.log('member service modify foundMember error');
+      throw new MemberException('회원을 찾을 수 없습니다.');
+    }
+    const updatedMember = await this.memberRepository.updateProfile(id, member);
+    return updatedMember;
+  }
+
+  // 회원 탈퇴
+  async withdraw(id: number): Promise<void> {
+    await this.memberRepository.delete(id);
+  }
+}
