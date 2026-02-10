@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { MemberRepository } from 'src/repository/member/member.repository';
 import { AuthService } from '../auth/auth.service';
-import { MemberRegisterDTO, MemberResponseDTO, MemberUpdateDTO } from 'src/domain/member/dto/member.dto';
+import { MemberRegisterDTO, MemberResponseDTO, MemberUpdateDTO, MulterFile } from 'src/domain/member/dto/member.dto';
 import MemberException from 'src/exception/exception.member';
 import { AuthProvider } from '@prisma/client';
 import { MemberResponse } from 'src/domain/member/dto/member.response';
+import { S3Service } from '../s3/s3.service';
+import { profile } from 'console';
 
 // 1. 예외 처리(Custom Exception)
 // 2. 트랜잭션 처리(Transcation Handler)
@@ -14,6 +16,7 @@ export class MemberService {
   constructor(
     private readonly memberRepository: MemberRepository,
     private readonly authService: AuthService,
+    private readonly s3Service: S3Service
   ) {}
 
   // 회원 가입 서비스
@@ -54,6 +57,27 @@ export class MemberService {
     }));
 
     return response;
+  }
+
+  // 회원 프로필 수정
+  async updateProfile(id:number, thumbnail:MulterFile, member:MemberUpdateDTO) {
+    if (thumbnail) {
+      const s3Result = await this.s3Service.uploadFile(thumbnail, "profiles")
+
+      // 회원 정보 검색 및 업데이트
+      const foundMember = await this.memberRepository.findMemberById(id);
+      if (!foundMember) { throw new MemberException("member service updateProfile 회원 조회 실패") }
+      
+      console.log(`S3 업로드 성공 : 원본 URL : ${s3Result.originalUrl}`)
+      console.log(`S3 업로드 성공 : 썸네일 URL : ${s3Result.thumbnailUrl}`)
+      await this.memberRepository.updateProfile(id, {
+        memberName: foundMember.memberName,
+        memberProfile:s3Result.originalUrl
+      })
+    }
+
+    return await this.memberRepository.findMemberById(id);
+    
   }
 
   // 회원 정보 수정

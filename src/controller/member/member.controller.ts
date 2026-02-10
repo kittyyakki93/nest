@@ -8,13 +8,17 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation } from '@nestjs/swagger';
 import { AuthProvider } from '@prisma/client';
 import { ApiResponse } from 'src/common/dto/api-response.dto';
-import {
+import type {
   MemberRegisterDTO,
   MemberUpdateDTO,
+  MulterFile,
 } from 'src/domain/member/dto/member.dto';
 import { MemberResponse } from 'src/domain/member/dto/member.response';
 import { MemberService } from 'src/service/member/member.service';
@@ -46,6 +50,22 @@ export class MemberController {
   }
 
   // 프로필사진 수정(AWS)
+  @Put("/profile/:id")
+  // react 쪽에서 form-data의 key이름을 "thumbnail"로 보낼 경우 가로챈다
+  @UseInterceptors(FileInterceptor("thumbnail"))
+  async updateProfile(
+    @Param("id", ParseIntPipe) id: number,
+    @UploadedFile() thumbnail: MulterFile,
+    @Body() member:MemberUpdateDTO
+  ) {
+    console.log("전송된 데이터 body:", member);
+    console.log("업로드된 파일 데이터", thumbnail)
+
+    const updatedMember = await this.memberService.updateProfile(id, thumbnail, member);
+    return new ApiResponse("회원 정보가 수정되었습니다", updatedMember);
+    
+    }
+
 
   // 회원정보 수정
   @Put(':id')
