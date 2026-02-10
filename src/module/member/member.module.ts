@@ -7,7 +7,7 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   //순환참조 MemberModule과 함께 추가
   imports: [
-    forwardRef(()=> AuthModule)
+    forwardRef(()=> AuthModule),
   ],
   controllers: [MemberController],
   providers: [MemberRepository, MemberService],
