@@ -63,9 +63,8 @@ export class MemberController {
 
     const updatedMember = await this.memberService.updateProfile(id, thumbnail, member);
     return new ApiResponse("회원 정보가 수정되었습니다", updatedMember);
-    
-    }
 
+    }
 
   // 회원정보 수정
   @Put(':id')
