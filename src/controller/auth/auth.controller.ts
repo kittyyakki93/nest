@@ -11,7 +11,7 @@ export class AuthController {
     // local.strategy -> guard -> validate -> return -> req.user
     // 이러한 사이클로 들어옴 social도 같은 사이클
   async login(@Req() req:AuthRequest) {
-    console.log("controller", req)
+    console.log("controller", req.user)
   }
 
 
