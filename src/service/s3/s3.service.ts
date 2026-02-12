@@ -7,8 +7,9 @@ import { Injectable } from '@nestjs/common';
 import dayjs from 'dayjs';
 import { basename, extname } from 'path';
 import sharp from 'sharp';
-import { MulterFile } from 'src/domain/member/dto/member.dto';
-import { v4 as uuidv4 } from 'uuid';
+import { MulterFile } from 'src/domain/member/dto/member.dto.js';
+// import { v4 as v4uuid } from 'uuid';
+const { v4 } = require('uuid');
 
 @Injectable()
 export class S3Service {
@@ -37,7 +38,7 @@ export class S3Service {
     const nameWithoutExt = basename(file.originalname, fileExt); // 파일이름만 추출
 
     // 고유한 uuid
-    const uniqueId = uuidv4();
+    const uniqueId = v4();
 
     // 최종파일 이름
     const baseFilename = `${uniqueId}_${nameWithoutExt}`;
